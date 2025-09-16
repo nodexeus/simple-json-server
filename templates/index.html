@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook UI - Simple JSON Webhook Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #e90808 0%, #000000 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.disconnected {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .webhook-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .webhook-list-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .webhook-entries {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .webhook-entry {
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+
+        .webhook-entry:hover {
+            background-color: #f8f9fa;
+        }
+
+        .webhook-entry.new {
+            background-color: #e8f5e8;
+            animation: highlight 3s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background-color: #d4edda; }
+            100% { background-color: transparent; }
+        }
+
+        .webhook-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .webhook-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .webhook-timestamp {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .webhook-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .webhook-toggle {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #6c757d;
+            transition: transform 0.3s ease;
+        }
+
+        .webhook-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .webhook-details {
+            display: none;
+            padding: 0 20px 20px;
+            background: #f8f9fa;
+        }
+
+        .webhook-details.expanded {
+            display: block;
+        }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-section h4 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .headers-list {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .header-item {
+            display: flex;
+            padding: 5px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .header-item:last-child {
+            border-bottom: none;
+        }
+
+        .header-name {
+            font-weight: 600;
+            color: #495057;
+            min-width: 150px;
+            margin-right: 10px;
+        }
+
+        .header-value {
+            color: #6c757d;
+            word-break: break-all;
+        }
+
+        .json-payload {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .controls {
+                justify-content: center;
+            }
+
+            .webhook-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .webhook-meta {
+                width: 100%;
+            }
+
+            .header-item {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .header-name {
+                min-width: auto;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Webhook UI</h1>
+                <div class="subtitle">Simple JSON Webhook Server</div>
+            </div>
+            <div class="controls">
+                <div class="status">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">Connected</span>
+                </div>
+                <button class="btn" id="clearBtn" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+
+        <div class="webhook-list">
+            <div class="webhook-list-header">
+                Recent Webhook Requests (<span id="requestCount">0</span>)
+            </div>
+            <div class="webhook-entries" id="webhookEntries">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">📡</div>
+                    <h3>No webhooks received yet</h3>
+                    <p>Send a POST request to this server's endpoint to see webhook data appear here in real-time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SocketIO Client Library -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    
+    <script>
+        // Global variables
+        let socket;
+        let requestCount = 0;
+        const webhookEntries = document.getElementById('webhookEntries');
+        const emptyState = document.getElementById('emptyState');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const requestCountElement = document.getElementById('requestCount');
+
+        // Initialize SocketIO connection
+        function initializeSocket() {
+            socket = io();
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+                updateConnectionStatus(true);
+                // Request current history when connecting
+                socket.emit('get_history');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Disconnected from server');
+                updateConnectionStatus(false);
+            });
+
+            socket.on('new_webhook', function(data) {
+                console.log('New webhook received:', data);
+                addWebhookEntry(data.request, true);
+                updateRequestCount(data.total_count || requestCount + 1);
+            });
+
+            socket.on('history_data', function(data) {
+                console.log('History data received:', data);
+                clearWebhookEntries();
+                if (data.requests && data.requests.length > 0) {
+                    data.requests.forEach(request => {
+                        addWebhookEntry(request, false);
+                    });
+                    updateRequestCount(data.total_count || data.requests.length);
+                } else {
+                    showEmptyState();
+                }
+            });
+
+            socket.on('history_cleared', function(data) {
+                console.log('History cleared:', data);
+                clearWebhookEntries();
+                updateRequestCount(0);
+                showEmptyState();
+            });
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusIndicator.classList.remove('disconnected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusIndicator.classList.add('disconnected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        // Add a new webhook entry to the UI
+        function addWebhookEntry(request, isNew = false) {
+            hideEmptyState();
+
+            const entry = document.createElement('div');
+            entry.className = `webhook-entry${isNew ? ' new' : ''}`;
+            
+            const timestamp = new Date(request.timestamp).toLocaleString();
+            const headersCount = Object.keys(request.headers || {}).length;
+            
+            entry.innerHTML = `
+                <div class="webhook-header" onclick="toggleWebhookDetails('${request.id || Date.now()}')">
+                    <div class="webhook-meta">
+                        <div class="webhook-timestamp">${timestamp}</div>
+                        <div class="webhook-info">
+                            ${request.method || 'POST'} • ${request.source_ip || 'Unknown IP'} • ${headersCount} headers
+                        </div>
+                    </div>
+                    <button class="webhook-toggle" id="toggle-${request.id || Date.now()}">▼</button>
+                </div>
+                <div class="webhook-details" id="details-${request.id || Date.now()}">
+                    <div class="detail-section">
+                        <h4>Headers</h4>
+                        <div class="headers-list">
+                            ${formatHeaders(request.headers || {})}
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h4>Payload</h4>
+                        <div class="json-payload">${formatJSON(request.payload || {})}</div>
+                    </div>
+                </div>
+            `;
+
+            // Insert at the beginning (most recent first)
+            webhookEntries.insertBefore(entry, webhookEntries.firstChild);
+
+            // Remove the 'new' class after animation
+            if (isNew) {
+                setTimeout(() => {
+                    entry.classList.remove('new');
+                }, 3000);
+            }
+        }
+
+        // Toggle webhook details visibility
+        function toggleWebhookDetails(id) {
+            const details = document.getElementById(`details-${id}`);
+            const toggle = document.getElementById(`toggle-${id}`);
+            
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                toggle.classList.add('expanded');
+            }
+        }
+
+        // Format headers for display
+        function formatHeaders(headers) {
+            if (!headers || Object.keys(headers).length === 0) {
+                return '<div class="header-item"><span class="header-value">No headers</span></div>';
+            }
+
+            return Object.entries(headers)
+                .map(([name, value]) => `
+                    <div class="header-item">
+                        <span class="header-name">${escapeHtml(name)}:</span>
+                        <span class="header-value">${escapeHtml(value)}</span>
+                    </div>
+                `).join('');
+        }
+
+        // Format JSON with basic syntax highlighting
+        function formatJSON(obj) {
+            try {
+                return escapeHtml(JSON.stringify(obj, null, 2));
+            } catch (e) {
+                return escapeHtml(String(obj));
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Clear all webhook entries
+        function clearWebhookEntries() {
+            const entries = webhookEntries.querySelectorAll('.webhook-entry');
+            entries.forEach(entry => entry.remove());
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            emptyState.style.display = 'block';
+        }
+
+        // Hide empty state
+        function hideEmptyState() {
+            emptyState.style.display = 'none';
+        }
+
+        // Update request count display
+        function updateRequestCount(count) {
+            requestCount = count;
+            requestCountElement.textContent = count;
+        }
+
+        // Clear history function
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all webhook history?')) {
+                socket.emit('clear_history');
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSocket();
+        });
+    </script>
+</body>
+</html>

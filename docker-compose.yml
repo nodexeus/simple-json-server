@@ -1,0 +1,9 @@
+
+services:
+  json-server:
+    build: .
+    ports:
+      - "3002:3002"
+    environment:
+      - FLASK_ENV=development
+    restart: unless-stopped
