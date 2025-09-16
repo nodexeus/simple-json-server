@@ -48,6 +48,7 @@ def serve_ui():
     return render_template('index.html')
 
 @app.route('/', methods=['POST'])
+@app.route('/<path:path>', methods=['POST'])
 def echo_json():
     try:
         if not request.is_json:
