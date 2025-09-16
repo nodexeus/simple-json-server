@@ -23,6 +23,7 @@ class WebhookRequest:
     method: str
     headers: Dict[str, str]
     payload: Dict[str, Any]
+    path: str
     source_ip: str
     request_id: str
 
@@ -62,6 +63,7 @@ def echo_json(path):
             method=request.method,
             headers=dict(request.headers),
             payload=payload,
+            path=request.path,
             source_ip=request.remote_addr or 'unknown',
             request_id=str(uuid.uuid4())
         )
