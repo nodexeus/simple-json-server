@@ -47,9 +47,9 @@ def serve_ui():
     """Serve the webhook UI interface."""
     return render_template('index.html')
 
-@app.route('/', methods=['POST'])
+@app.route('/',defaults={'path': ''}, methods=['POST'])
 @app.route('/<path:path>', methods=['POST'])
-def echo_json():
+def echo_json(path):
     try:
         if not request.is_json:
             return jsonify({"error": "Request must be JSON"}), 400
