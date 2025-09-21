@@ -7,3 +7,14 @@ services:
     environment:
       - FLASK_ENV=development
     restart: unless-stopped
+  tunnel:
+    container_name: cloudflare_tunnel
+    image: cloudflare/cloudflared:latest
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: start-first
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiY2MxOGY4NjZjN2MyMTZlY2U4N2NiZWQwMzQyOGIyNjciLCJ0IjoiYmFlMzgyOWUtMTA2MC00MGE0LTg2MGMtYmUwNmRjMDkyYzgwIiwicyI6Ik5HVm1ZVE5oTURRdFkyVm1OUzAwTUdaakxXSTROekV0T1dFM1l6azRZamd4TkRreCJ9
+    command: tunnel run
